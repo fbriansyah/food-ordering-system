@@ -38,6 +38,46 @@ public class Order extends AggregateRoot<OrderId> {
         validateItemsPrice();
     }
 
+    // pay membuat status order dari OrderStatus.PENDING menjadi OrderStatus.PAID
+    public void pay() {
+        if (orderStatus != OrderStatus.PENDING) {
+            throw new OrderDomainException("Order tidak pada State yang sesuai untuk melakukan operasi pay");
+        }
+        orderStatus = OrderStatus.PAID;
+    }
+
+    // approve membuat status order dari OrderStatus.PAID menjadi OrderStatus.APPROVED
+    public void approve() {
+        if (orderStatus != OrderStatus.PAID) {
+            throw new OrderDomainException("Order tidak pada State yang sesuai untuk melakukan operasi approve");
+        }
+        orderStatus = OrderStatus.APPROVED;
+    }
+
+    public void initCancel(List<String> failureMessages) {
+        if (orderStatus != OrderStatus.PAID) {
+            throw new OrderDomainException("Order tidak pada State yang sesuai untuk melakukan operasi initCancel");
+        }
+        orderStatus = OrderStatus.CANCELLING;
+        updateFailureMessages(failureMessages);
+    }
+    public void cancel(List<String> failureMessages) {
+        if (!(orderStatus == OrderStatus.PENDING || orderStatus == OrderStatus.CANCELLING)) {
+            throw new OrderDomainException("Order tidak pada State yang sesuai untuk melakukan operasi cancel");
+        }
+        orderStatus = OrderStatus.CANCELLED;
+        updateFailureMessages(failureMessages);
+    }
+
+    private void updateFailureMessages(List<String> failureMessages) {
+        if (this.failureMessages != null && failureMessages != null) {
+            this.failureMessages.addAll(failureMessages.stream().filter(message -> !message.isEmpty()).toList());
+        }
+        if (this.failureMessages == null) {
+            this.failureMessages = failureMessages;
+        }
+    }
+
 
     private void validateInitialOrder() {
         if (orderStatus != null || getId() != null) {
